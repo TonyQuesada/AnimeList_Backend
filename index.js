@@ -96,7 +96,7 @@ app.get("/Favorites", (req, res) => {
         if (!userId) {
             return res.status(400).json({ message: "User ID is required" });
         }
-        const q = "SELECT * FROM FavoritesList WHERE user_id = ? ORDER BY date_added DESC";
+        const q = "SELECT * FROM FavoritesList WHERE user_id = ?";
         db.query(q, [userId], (err, data) => {
             if (err) return res.status(500).json({ message: "Error fetching data", error: err });
             return res.json(data);
@@ -131,6 +131,19 @@ app.get('/Users/:user_id', async (req, res) => {
             res.json(results[0]);
         });
 
+    } catch (err) {
+        console.log(err);
+        res.status(500).send('Error al obtener los estados');
+    }
+});
+
+app.get('/GenresAnime', async (req, res) => {
+    try {
+        const q = "SELECT * FROM GenresAnime WHERE status = 1 ORDER BY name ASC;";      
+        db.query(q, (err, data) => {
+            if(err) return res.json(err);
+            return res.json(data);
+        });
     } catch (err) {
         console.log(err);
         res.status(500).send('Error al obtener los estados');
