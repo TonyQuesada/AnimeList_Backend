@@ -473,3 +473,5 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 app.listen(8800, () => {
     console.log("Connected to backend!");
 });
+
+export default app;
