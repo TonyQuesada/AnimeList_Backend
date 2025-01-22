@@ -109,7 +109,7 @@ app.get("/Favorites", (req, res) => {
 
 app.get('/StatusesAnime', async (req, res) => {
     try {
-        const q = "SELECT * FROM StatusesAnime";      
+        const q = "SELECT * FROM StatusesAnime ORDER BY status_id ASC;";      
         db.query(q, (err, data) => {
             if(err) return res.json(err);
             return res.json(data);
