@@ -296,10 +296,9 @@ app.put('/Favorites/AddOrUpdate', async (req, res) => {
     }
 
     try {
-
         // Verificar si el anime ya existe en la tabla Animes
         const [animeExists] = await db.promise().query(
-            "SELECT anime_id FROM Animes WHERE api_id = ?", [api_id]
+            "SELECT anime_id, image_url FROM Animes WHERE api_id = ?", [api_id]
         );
 
         let animeId;
@@ -307,6 +306,14 @@ app.put('/Favorites/AddOrUpdate', async (req, res) => {
         if (animeExists.length > 0) {
             // Si existe, usar su anime_id
             animeId = animeExists[0].anime_id;
+            
+            // Verificar si la imagen es diferente y actualizarla si es necesario
+            if (animeExists[0].image_url !== image_url) {
+                await db.promise().query(
+                    "UPDATE Animes SET image_url = ? WHERE anime_id = ?",
+                    [image_url, animeId]
+                );
+            }
         } else {
             // Si no existe, insertar el anime y obtener su ID
             const [result] = await db.promise().query(
