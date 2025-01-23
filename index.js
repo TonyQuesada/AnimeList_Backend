@@ -121,8 +121,7 @@ app.get('/StatusesAnime', async (req, res) => {
 });
 
 app.get('/Users/:user_id', async (req, res) => {
-    try{        
-
+    try{
         const { user_id } = req.params;    
         db.query('SELECT * FROM Users WHERE user_id = ?', [user_id], (err, results) => {
             if (err) return res.status(500).json({ error: 'Error al obtener los datos del usuario.' });
@@ -148,6 +147,20 @@ app.get('/GenresAnime', async (req, res) => {
         console.log(err);
         res.status(500).send('Error al obtener los estados');
     }
+});
+
+app.get('/Users/:user_id/profile-image', async (req, res) => {    
+    try{
+        const { user_id } = req.params;    
+        db.query('SELECT profile_image FROM Users WHERE user_id = ?', [user_id], (err, results) => {
+            if (err) return res.status(500).json({ error: 'Error al obtener la imagen del usuario.' });
+            if (results.length === 0) return res.status(404).json({ error: 'Usuario no encontrado.' });            
+            res.json({profile_image: results[0].profile_image});
+        });
+    } catch (err) {
+        console.log(err);
+        res.status(500).send('Error al obtener los estados');
+    }    
 });
 
 
