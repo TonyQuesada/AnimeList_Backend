@@ -404,7 +404,7 @@ app.put('/Users/:user_id', (req, res) => {
     );
   });
 
-app.put('/Users/UpdatePassword/:user_id', (req, res) => {
+  app.put('/Users/UpdatePassword/:user_id', (req, res) => {
     const { user_id } = req.params;
     const { password } = req.body;
 
@@ -422,6 +422,21 @@ app.put('/Users/UpdatePassword/:user_id', (req, res) => {
         }
       );
     });
+  });
+  
+app.put('/Users/AdultContent/:user_id', (req, res) => {
+    const { user_id } = req.params;
+    const { sfw } = req.body;
+
+    // Encriptar la nueva contraseña antes de guardarla
+    db.query(
+        'UPDATE Users SET sfw = ? WHERE user_id = ?',
+        [sfw, user_id],
+        (err, results) => {
+          if (err) return res.status(500).json({ error: 'Error al actualizar los datos.' });    
+          res.json({ message: 'Datos actualizados con éxito.' });
+        }
+      );
   });
   
 
