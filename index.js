@@ -368,7 +368,7 @@ app.put('/Favorites/Update/:anime_id', async (req, res) => {
     const { anime_id } = req.params;
     const { user_id, status_id } = req.body;
 
-    if (!anime_id || !user_id || !status_id) {
+    if (!anime_id || !user_id) {
         return res.status(400).send('Datos  incompletos o inválidos');
     }
 
