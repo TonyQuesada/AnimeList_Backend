@@ -47,7 +47,10 @@ db.connect(function(err) {
 
 // USE //
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: "https://anime-library-theta.vercel.app",
+    credentials: true
+}));
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
