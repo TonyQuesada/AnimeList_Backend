@@ -97,11 +97,12 @@ app.get("/", (req, res) => {
 app.get("/Favorites", (req, res) => {
     try {
         const userId = req.query.user_id; // O req.params.user_id
+        const type = req.query.type; // O req.params.type
         if (!userId) {
             return res.status(400).json({ message: "User ID is required" });
         }
-        const q = "SELECT * FROM FavoritesList WHERE user_id = ?";
-        db.query(q, [userId], (err, data) => {
+        const q = "SELECT * FROM FavoritesList WHERE user_id = ? AND type = ?";
+        db.query(q, [userId], [type], (err, data) => {
             if (err) return res.status(500).json({ message: "Error fetching data", error: err });
             return res.json(data);
         });
