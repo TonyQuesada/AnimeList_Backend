@@ -331,6 +331,13 @@ app.put('/Favorites/AddOrUpdate', async (req, res) => {
                     [image_url, animeId]
                 );
             }
+
+            if (animeExists[0].title_english !== title_english) {
+                await db.promise().query(
+                    "UPDATE Animes SET title_english = ? WHERE anime_id = ?",
+                    [title_english, animeId]
+                );
+            }
         } else {
             // Si no existe, insertar el anime y obtener su ID
             const [result] = await db.promise().query(
