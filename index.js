@@ -306,7 +306,7 @@ app.post("/uploadProfileImage", upload.single('profileImage'), async (req, res) 
 // PUT //
 app.put('/Favorites/AddOrUpdate', async (req, res) => {
 
-    const { api_id, title, synopsis, image_url, user_id, status_id, year } = req.body;
+    const { api_id, title, synopsis, image_url, user_id, status_id, year, title_english } = req.body;
 
     if (!api_id || !user_id || !status_id) {
         return res.status(400).send('Datos incompletos o inválidos');
@@ -334,8 +334,8 @@ app.put('/Favorites/AddOrUpdate', async (req, res) => {
         } else {
             // Si no existe, insertar el anime y obtener su ID
             const [result] = await db.promise().query(
-                "INSERT INTO Animes (api_id, title, description, image_url, year) VALUES (?, ?, ?, ?, ?)",
-                [api_id, title, synopsis, image_url, year]
+                "INSERT INTO Animes (api_id, title, description, image_url, year, title_english) VALUES (?, ?, ?, ?, ?, ?)",
+                [api_id, title, synopsis, image_url, year, title_english]
             );
 
             animeId = result.insertId;
