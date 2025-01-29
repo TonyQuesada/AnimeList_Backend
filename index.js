@@ -18,7 +18,6 @@ cloudinary.config({
 });
 
 const app = express();
-
 const db = mysql.createConnection({
 
     host: process.env.DB_HOST,
@@ -96,13 +95,15 @@ app.get("/", (req, res) => {
 
 app.get("/Favorites", (req, res) => {
     try {
-        const userId = req.query.user_id; // O req.params.user_id
-        const type = req.query.type; // O req.params.type
+        const userId = req.query.user_id;
+        const type = req.query.type || 'anime';
+
         if (!userId) {
             return res.status(400).json({ message: "User ID is required" });
         }
-        const q = "SELECT * FROM FavoritesList WHERE user_id = ? AND type = ?";
-        db.query(q, [userId], [type], (err, data) => {
+        const q = "SELECT * FROM FavoritesList WHERE user_id = ? AND type = ? COLLATE utf8mb4_0900_ai_ci";
+
+        db.query(q, [userId, type], (err, data) => {
             if (err) return res.status(500).json({ message: "Error fetching data", error: err });
             return res.json(data);
         });
@@ -307,7 +308,7 @@ app.post("/uploadProfileImage", upload.single('profileImage'), async (req, res) 
 // PUT //
 app.put('/Favorites/AddOrUpdate', async (req, res) => {
 
-    const { api_id, title, synopsis, image_url, user_id, status_id, year, title_english } = req.body;
+    const { api_id, title, synopsis, image_url, user_id, status_id, year, title_english, type } = req.body;
 
     if (!api_id || !user_id || !status_id) {
         return res.status(400).send('Datos incompletos o inválidos');
@@ -316,7 +317,8 @@ app.put('/Favorites/AddOrUpdate', async (req, res) => {
     try {
         // Verificar si el anime ya existe en la tabla Animes
         const [animeExists] = await db.promise().query(
-            "SELECT anime_id, image_url FROM Animes WHERE api_id = ?", [api_id]
+            "SELECT anime_id, image_url FROM Animes WHERE api_id = ? AND type = ?", 
+            [api_id, type]
         );
 
         let animeId;
@@ -342,28 +344,31 @@ app.put('/Favorites/AddOrUpdate', async (req, res) => {
         } else {
             // Si no existe, insertar el anime y obtener su ID
             const [result] = await db.promise().query(
-                "INSERT INTO Animes (api_id, title, description, image_url, year, title_english) VALUES (?, ?, ?, ?, ?, ?)",
-                [api_id, title, synopsis, image_url, year, title_english]
+                "INSERT INTO Animes (api_id, title, description, image_url, year, title_english, type) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [api_id, title, synopsis, image_url, year, title_english, type]
             );
 
             animeId = result.insertId;
         }
 
+        const tabla  = type === "manga" ? 'FavoritesManga' : "Favorites";
+        const id_col = type === "manga" ? 'manga_id' : "anime_id";
+
         // Insertar en la tabla Favorites si no existe ya para ese usuario y anime_id
         const [favoriteExists] = await db.promise().query(
-            "SELECT * FROM Favorites WHERE user_id = ? AND anime_id = ?", [user_id, animeId]
+            `SELECT * FROM ${tabla} WHERE user_id = ? AND ${id_col} = ?`, [user_id, animeId]
         );
 
         if (favoriteExists.length > 0) {
             // Si ya existe el favorito, actualizar el estado
             await db.promise().query(
-                "UPDATE Favorites SET status_id = ? WHERE user_id = ? AND anime_id = ?",
+                `UPDATE ${tabla} SET status_id = ? WHERE user_id = ? AND ${id_col} = ?`,
                 [status_id, user_id, animeId]
             );
         } else {
             // Si no existe, insertarlo
             const [insertResult] = await db.promise().query(
-                "INSERT INTO Favorites (user_id, anime_id, status_id, date_added) VALUES (?, ?, ?, ?)",
+                `INSERT INTO ${tabla} (user_id, ${id_col}, status_id, date_added) VALUES (?, ?, ?, ?)`,
                 [user_id, animeId, status_id, new Date()]
             );
         }
@@ -378,7 +383,7 @@ app.put('/Favorites/AddOrUpdate', async (req, res) => {
 
 app.put('/Favorites/Update/:anime_id', async (req, res) => {
     const { anime_id } = req.params;
-    const { user_id, status_id } = req.body;
+    const { user_id, status_id, type } = req.body;
 
     if (!anime_id || !user_id) {
         return res.status(400).send('Datos  incompletos o inválidos');
@@ -386,8 +391,11 @@ app.put('/Favorites/Update/:anime_id', async (req, res) => {
 
     try {
 
+        const tabla  = type === "manga" ? 'FavoritesManga' : "Favorites";
+        const id_col = type === "manga" ? 'manga_id' : "anime_id";
+
         const result = await db.promise().query(
-            `UPDATE Favorites SET status_id = ? WHERE anime_id = ? AND user_id = ?`,
+            `UPDATE ${tabla} SET status_id = ? WHERE ${id_col} = ? AND user_id = ?`,
             [status_id, anime_id, user_id]
         );
         if (result[0].affectedRows > 0) {
@@ -456,11 +464,15 @@ app.put('/Users/AdultContent/:user_id', (req, res) => {
 // DELETE //
 app.delete('/Favorites/:anime_id', async (req, res) => {
     const { anime_id } = req.params;
-    const { user_id } = req.body;
+    const { user_id, type } = req.body;
 
     try {
+
+        const tabla  = type === "manga" ? 'FavoritesManga' : "Favorites";
+        const id_col = type === "manga" ? 'manga_id' : "anime_id";
+
         const result = await db.promise().query(
-            `DELETE FROM Favorites WHERE anime_id = ? AND user_id = ?`,
+            `DELETE FROM ${tabla} WHERE ${id_col} = ? AND user_id = ?`,
             [anime_id, user_id]
         );
         if (result[0].affectedRows > 0) {
@@ -475,21 +487,24 @@ app.delete('/Favorites/:anime_id', async (req, res) => {
 
 app.delete('/Favorites/API_id/:anime_id', async (req, res) => {
     const { anime_id } = req.params;
-    const { user_id } = req.body;
+    const { user_id, type } = req.body;
 
     try {        
         // Consultar si el anime existe
         const [animeExists] = await db.promise().query(
-            `SELECT anime_id FROM Animes WHERE api_id = ?`, 
-            [anime_id]
+            `SELECT anime_id FROM Animes WHERE api_id = ? AND type = ?`, 
+            [anime_id, type]
         );
 
         if (animeExists.length > 0) { // Verificar si hay resultados
             const anime_id_db  = animeExists[0].anime_id;
 
             // Eliminar el favorito
+            const tabla  = type === "manga" ? 'FavoritesManga' : "Favorites";
+            const id_col = type === "manga" ? 'manga_id' : "anime_id";
+
             const [result] = await db.promise().query(
-                `DELETE FROM Favorites WHERE anime_id = ? AND user_id = ?`,
+                `DELETE FROM ${tabla} WHERE ${id_col} = ? AND user_id = ?`,
                 [anime_id_db, user_id]  // Usa anime_id_db y user_id aquí
             );
 
